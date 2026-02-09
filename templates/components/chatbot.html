@@ -1,0 +1,809 @@
+<!-- Chatbot Component -->
+<style>
+    /* Chatbot Floating Button */
+    .chatbot-fab {
+        position: fixed;
+        bottom: 30px;
+        left: 30px;
+        width: 60px;
+        height: 60px;
+        background: var(--primary-color);
+        border-radius: 50%;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 9999;
+        transition: all 0.3s ease;
+        border: 2px solid white;
+    }
+
+    .chatbot-fab:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .chatbot-fab i {
+        color: white;
+        font-size: 28px;
+    }
+
+    /* Chatbot Window */
+    .chatbot-window {
+        position: fixed;
+        bottom: 100px;
+        left: 30px;
+        width: 380px;
+        height: 600px;
+        background: var(--card-background);
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid var(--border-color);
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+        pointer-events: none;
+        transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+
+    .chatbot-window.active {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: all;
+    }
+
+    /* Header */
+    .chatbot-header {
+        background: var(--primary-color);
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: white;
+    }
+
+    .chatbot-title {
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .chatbot-close {
+        cursor: pointer;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+
+    .chatbot-close:hover {
+        opacity: 1;
+    }
+
+    /* Messages Area */
+    .chatbot-messages {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        background: var(--background);
+    }
+
+    .message {
+        max-width: 80%;
+        padding: 12px 16px;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        position: relative;
+        word-wrap: break-word;
+    }
+
+    .message.bot {
+        background: var(--card-background);
+        color: var(--text-primary);
+        align-self: flex-start;
+        border: 1px solid var(--border-color);
+        border-bottom-left-radius: 2px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .message.user {
+        background: var(--primary-color);
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 2px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Suggestions / Quick Replies */
+    .quick-replies {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 5px;
+    }
+
+    .quick-chip {
+        background: var(--background);
+        border: 1px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 6px 12px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .quick-chip:hover {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    /* Input Area */
+    .chatbot-input-area {
+        padding: 15px;
+        background: var(--card-background);
+        border-top: 1px solid var(--border-color);
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .chatbot-input {
+        flex: 1;
+        border: 1px solid var(--border-color);
+        background: var(--background);
+        color: var(--text-primary);
+        padding: 12px 18px;
+        border-radius: 25px;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.3s;
+    }
+
+    .chatbot-input:focus {
+        border-color: var(--primary-color);
+    }
+
+    .chatbot-send-btn {
+        background: var(--primary-color);
+        color: white;
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .chatbot-send-btn:hover {
+        transform: scale(1.1);
+    }
+
+    .chatbot-send-btn:active {
+        transform: scale(0.9);
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+        display: none;
+        align-self: flex-start;
+        background: var(--card-background);
+        padding: 10px 15px;
+        border-radius: 12px;
+        border-bottom-left-radius: 2px;
+        border: 1px solid var(--border-color);
+        margin-bottom: 15px;
+    }
+
+    .typing-indicator span {
+        height: 8px;
+        width: 8px;
+        background-color: var(--text-secondary);
+        border-radius: 50%;
+        display: inline-block;
+        margin: 0 2px;
+        animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .typing-indicator span:nth-child(1) {
+        animation-delay: -0.32s;
+    }
+
+    .typing-indicator span:nth-child(2) {
+        animation-delay: -0.16s;
+    }
+
+    @keyframes bounce {
+
+        0%,
+        80%,
+        100% {
+            transform: scale(0);
+        }
+
+        40% {
+            transform: scale(1);
+        }
+    }
+
+    /* User Selection Modal Styles */
+    .user-selection-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: var(--card-background);
+        z-index: 10000;
+        display: none;
+        flex-direction: column;
+    }
+
+    .user-selection-overlay.active {
+        display: flex;
+    }
+
+    .user-selection-header {
+        background: var(--primary-color);
+        color: white;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: bold;
+    }
+
+    .user-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px;
+    }
+
+    .user-item {
+        padding: 10px;
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: background 0.2s;
+    }
+
+    .user-item:hover {
+        background: var(--border-color);
+    }
+
+    .user-item-name {
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .user-item-role {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
+
+    /* Toast Notification */
+    .message-toast {
+        position: fixed;
+        top: 20px;
+        right: auto;
+        left: 20px;
+        background: var(--card-background);
+        border-left: 5px solid var(--primary-color);
+        padding: 15px 20px;
+        border-radius: 4px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        z-index: 10001;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        transform: translateX(-120%);
+        transition: transform 0.3s ease-out;
+    }
+
+    .message-toast.show {
+        transform: translateX(0);
+    }
+
+    .message-toast-content {
+        flex: 1;
+    }
+
+    .message-toast-title {
+        font-weight: bold;
+        color: var(--primary-color);
+        margin-bottom: 5px;
+    }
+
+    .message-toast-text {
+        font-size: 0.9em;
+        color: var(--text-primary);
+    }
+
+    @media (max-width: 480px) {
+        .chatbot-window {
+            width: calc(100% - 40px);
+            bottom: 100px;
+            left: 20px;
+            height: 60vh;
+        }
+    }
+</style>
+
+<!-- Floating Action Button -->
+<div class="chatbot-fab" id="chatbotToggle">
+    <i class="fas fa-comment-dots"></i>
+</div>
+
+<!-- Chat Window -->
+<div class="chatbot-window" id="chatbotWindow">
+    <div class="chatbot-header">
+        <div class="chatbot-title">
+            <i class="fas fa-arrow-left" id="chatBackButton"
+                style="display:none; cursor:pointer; margin-right:10px;"></i>
+            <span id="chatTitleSpan"><i class="fas fa-robot"></i> SmartHR Assistant</span>
+        </div>
+        <div class="chatbot-controls">
+            <button class="chatbot-toggle" id="chatbotToggle"><i class="fas fa-chevron-down"></i></button>
+            <button class="chatbot-close" id="chatbotClose"><i class="fas fa-times"></i></button>
+        </div>
+    </div>
+
+    <div class="chatbot-messages" id="chatbotMessages">
+        <div class="message bot">
+            नमस्कार <br>
+            HELLO! 👋 I'm 15 CESR CHATBOT. YOU CAN SEND TEXT MSG FOR ANY USER
+            <div class="quick-replies">
+                <span class="quick-chip" data-text="How to add personnel?">Add Personnel</span>
+                <span class="quick-chip" data-text="How to apply leave?">Apply Leave</span>
+                <!-- <span class="quick-chip" data-text="Check vehicle status">MT Management</span> -->
+                <span class="quick-chip" data-text="Change theme">Change Theme</span>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+
+    <div class="chatbot-input-area">
+        <input type="text" class="chatbot-input" id="chatbotInput" placeholder="Type message..." autocomplete="off">
+        <button class="chatbot-send-btn" id="chatbotSend">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+
+    <!-- User Selection Overlay -->
+    <div class="user-selection-overlay" id="userSelectionOverlay">
+        <div class="user-selection-header">
+            <span>Select Recipient</span>
+            <i class="fas fa-times" id="closeUserSelection"></i>
+        </div>
+        
+        <div style="padding:10px;">
+            <input type="text" id="userSearchInput"
+                   placeholder="Search recipient..."
+                   style="width:100%; padding:8px 12px; border-radius:8px;
+                   border:1px solid var(--border-color); outline:none;">
+        </div>
+        
+        
+        <div class="user-list" id="userList">
+            <!-- Users will be populated here -->
+            <div style="text-align: center; padding: 20px; color: var(--text-secondary);">Loading users...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification Container -->
+<div id="toastContainer"></div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggle = document.getElementById('chatbotToggle');
+        const windowEl = document.getElementById('chatbotWindow');
+        const close = document.getElementById('chatbotClose');
+        const input = document.getElementById('chatbotInput');
+        const sendBtn = document.getElementById('chatbotSend');
+        const messagesContainer = document.getElementById('chatbotMessages');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const userSelectionOverlay = document.getElementById('userSelectionOverlay');
+        const closeUserSelection = document.getElementById('closeUserSelection');
+        const userList = document.getElementById('userList');
+        const toastContainer = document.getElementById('toastContainer');
+        const backBtn = document.getElementById('chatBackButton');
+        const titleSpan = document.getElementById('chatTitleSpan');
+
+        let pendingMessage = "";
+        let usersData = [];
+        let activeChatUserId = null; // ID of user we are currently chatting with
+        let activeChatUserName = null;
+        let pollingInterval = null;
+
+        // ======== KNOWLEDGE BASE (Fallback) ========
+        const KNOWLEDGE_BASE = [
+            { keywords: ["add personnel", "new soldier"], answer: "To add new personnel, go to <b>Personnel Management</b> section." },
+            { keywords: ["leave", "holiday"], answer: "Apply for leave via <b>Leave Management</b> > <b>Apply Leave</b>." },
+            { keywords: ["mt", "vehicle"], answer: "Check <b>MT Management</b> for vehicle details." },
+            { keywords: ["theme", "color"], answer: "Use the <b>Palette Icon (🎨)</b> to change themes." }
+        ];
+
+        // Toggle Chat Window
+        function toggleChat() {
+            windowEl.classList.toggle('active');
+            const icon = toggle.querySelector('i');
+            if (windowEl.classList.contains('active')) {
+                icon.classList.remove('fa-comment-dots');
+                icon.classList.add('fa-chevron-down');
+                input.focus();
+
+                // If we have an active chat, reload it to mark read?
+                if (activeChatUserId) loadChatHistory(activeChatUserId, activeChatUserName);
+
+            } else {
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-comment-dots');
+            }
+        }
+
+        toggle.addEventListener('click', toggleChat);
+        close.addEventListener('click', toggleChat);
+
+        // Back Button Logic
+        backBtn.addEventListener('click', leaveConversation);
+
+        function leaveConversation() {
+            activeChatUserId = null;
+            activeChatUserName = null;
+
+            // Reset UI
+            titleSpan.innerHTML = '<i class="fas fa-robot"></i> SmartHR Assistant';
+            backBtn.style.display = 'none';
+            messagesContainer.innerHTML = '';
+
+            // Show default bot welcome
+            const botMsg = document.createElement('div');
+            botMsg.className = 'message bot';
+            botMsg.innerHTML = `Hello! 👋 I'm your Unit Assistant. Ask me anything about using this application!
+            <div class="quick-replies">
+                <span class="quick-chip" data-text="How to add personnel?">Add Personnel</span>
+                <span class="quick-chip" data-text="How to apply leave?">Apply Leave</span>
+                <span class="quick-chip" data-text="Check vehicle status">MT Management</span>
+                <span class="quick-chip" data-text="Change theme">Change Theme</span>
+            </div>`;
+            messagesContainer.appendChild(botMsg);
+            messagesContainer.appendChild(typingIndicator);
+
+            // Re-bind quick replies events
+            // Actually, we should probably delegate quick reply clicks or re-bind them.
+            // Simplified:
+            bindQuickReplies();
+        }
+
+        function bindQuickReplies() {
+            const chips = document.querySelectorAll('.quick-chip');
+            chips.forEach(chip => {
+                chip.onclick = () => {
+                    const text = chip.getAttribute('data-text');
+                    input.value = text;
+                    handleSendClick();
+                };
+            });
+        }
+
+        // Initial binding
+        bindQuickReplies();
+
+        // Fetch Users API
+        async function fetchUsers() {
+            try {
+                const res = await fetch('/api/users');
+                if (res.ok) {
+                    usersData = await res.json();
+                    renderUserList();
+                }
+            } catch (err) {
+                console.error("Error fetching users:", err);
+                userList.innerHTML = '<div style="padding:10px; color:red;">Failed to load users</div>';
+            }
+        }
+
+        function renderUserList() {
+            userList.innerHTML = '';
+            if (usersData.length === 0) {
+                userList.innerHTML = '<div style="padding:10px;">No other users found.</div>';
+                return;
+            }
+            usersData.forEach(user => {
+                const item = document.createElement('div');
+                item.className = 'user-item';
+                item.innerHTML = `
+                    <div class="user-item-name">${user.username}</div>
+                    <div class="user-item-role">${user.role} (${user.company || 'N/A'})</div>
+                `;
+                item.onclick = () => selectUser(user.id, user.username);
+                userList.appendChild(item);
+            });
+        }
+
+        function selectUser(userId, username) {
+            userSelectionOverlay.classList.remove('active');
+            startConversation(userId, username);
+
+            // If there was a pending message typed before opening list, send it now
+            if (pendingMessage) {
+                sendMessageToUser(userId, pendingMessage, username);
+                pendingMessage = "";
+            }
+            input.focus();
+        }
+
+        function startConversation(userId, username) {
+            activeChatUserId = userId;
+            activeChatUserName = username;
+
+            // Update Header
+            titleSpan.innerHTML = `<i class="fas fa-user"></i> ${username}`;
+            backBtn.style.display = 'inline-block';
+
+            // Clear current messages (except maybe a welcome?)
+            messagesContainer.innerHTML = '';
+            messagesContainer.appendChild(typingIndicator); // Keep indicator check
+
+            loadChatHistory(userId, username);
+        }
+
+        async function loadChatHistory(userId, username) {
+            // Show loading?
+            try {
+                const res = await fetch(`/api/messages/history?other_user_id=${userId}`);
+                if (res.ok) {
+                    const messages = await res.json();
+                    messagesContainer.innerHTML = ''; // Clear again to be safe
+                    messagesContainer.appendChild(typingIndicator);
+
+                    messages.forEach(msg => {
+                        // If sender is ME, right side. Else left.
+                        // We need to know MY user id. 
+                        // But easier: if sender_id == userId (the other guy), it's incoming.
+                        const isIncoming = (msg.sender_id == userId);
+                        const senderClass = isIncoming ? 'bot' : 'user';
+                        // Note: reused 'bot' class for incoming user messages for style
+
+                        addMessage(msg.message, senderClass, false);
+                    });
+
+                    // Mark all relevant messages as read?
+                    // We can just mark checking unread separately.
+                }
+            } catch (err) {
+                console.error("Error loading history:", err);
+            }
+        }
+
+        async function sendMessageToUser(receiverId, message, receiverName) {
+            // Optimistic UI update
+            addMessage(message, 'user');
+
+            try {
+                const res = await fetch('/api/messages/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ receiver_id: receiverId, message: message })
+                });
+
+                if (!res.ok) {
+                    addMessage("Failed to send message.", 'bot');
+                }
+            } catch (err) {
+                console.error(err);
+                addMessage("Error sending message.", 'bot');
+            }
+        }
+
+        function handleSendClick() {
+            const text = input.value.trim();
+            if (!text) return;
+
+            input.value = ''; // Clear input
+
+            if (activeChatUserId) {
+                // We are in a conversation, send as DM
+                sendMessageToUser(activeChatUserId, text, activeChatUserName);
+            } else {
+                // Check for Bot Commands first
+                const lowerText = text.toLowerCase();
+                const faMatch = KNOWLEDGE_BASE.find(kb =>
+                    kb.keywords.some(k => lowerText.includes(k))
+                );
+
+                if (faMatch) {
+                    // It is a bot command
+                    addMessage(text, 'user');
+                    setTimeout(() => {
+                        showTyping();
+                        setTimeout(() => {
+                            hideTyping();
+                            addMessage(faMatch.answer, 'bot');
+                        }, 600);
+                    }, 300);
+                } else {
+                    // Not a command, assume DM -> Open User Selection
+                    pendingMessage = text;
+                    userSelectionOverlay.classList.add('active');
+                    if (usersData.length === 0) fetchUsers();
+                }
+            }
+        }
+
+        closeUserSelection.addEventListener('click', () => {
+            userSelectionOverlay.classList.remove('active');
+            if (pendingMessage) input.value = pendingMessage;
+        });
+
+        // Event Listeners
+        sendBtn.addEventListener('click', handleSendClick);
+        input.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleSendClick();
+        });
+
+        // Helper: Add Message to UI
+        function addMessage(text, sender, animate = true) {
+            const div = document.createElement('div');
+            div.classList.add('message', sender);
+            div.innerHTML = text;
+            messagesContainer.insertBefore(div, typingIndicator);
+            scrollToBottom();
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = 'block';
+            scrollToBottom();
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+        }
+
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // ================= POLL FOR MESSAGES =================
+        setInterval(checkUnreadMessages, 4000);
+
+        async function checkUnreadMessages() {
+            try {
+                const res = await fetch('/api/messages/unread');
+                if (res.ok) {
+                    const messages = await res.json();
+                    if (messages && messages.length > 0) {
+                        const messageIdsToMark = [];
+
+                        messages.forEach(msg => {
+                            // If this message is from the currently active user AND window is open
+                            if (activeChatUserId && msg.sender_id == activeChatUserId && windowEl.classList.contains('active')) {
+                                addMessage(msg.message, 'bot'); // 'bot' style = left side
+                                messageIdsToMark.push(msg.id);
+                            } else {
+                                // Notification
+                                showPersistentToast(msg.sender_name, msg.message, msg.id, msg.sender_id);
+                                // We do NOT auto mark read if it's a notification
+                            }
+                        });
+
+                        if (messageIdsToMark.length > 0) {
+                            markAsRead(messageIdsToMark);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Polling error:", err);
+            }
+        }
+
+        async function markAsRead(ids) {
+            await fetch('/api/messages/mark_read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message_ids: ids })
+            });
+        }
+
+        // PERSISTENT TOAST (No auto dismiss)
+        function showPersistentToast(sender, text, msgId, senderId) {
+            const toast = document.createElement('div');
+            toast.className = 'message-toast';
+            toast.innerHTML = `
+                <div class="message-toast-content">
+                    <div class="message-toast-title">New msg from ${sender}</div>
+                    <div class="message-toast-text">${text}</div>
+                </div>
+                 <i class="fas fa-times" style="cursor:pointer; margin-left:10px; opacity:0.7;"></i>
+            `;
+            document.body.appendChild(toast);
+
+            // Trigger animation
+            setTimeout(() => toast.classList.add('show'), 10);
+
+            // Close button logic
+            const closeBtn = toast.querySelector('.fa-times');
+            closeBtn.onclick = (e) => {
+                e.stopPropagation();
+                removeToast(toast);
+                markAsRead([msgId]);
+            };
+
+            // On click, open chat and switch to that user
+            toast.onclick = () => {
+                if (!windowEl.classList.contains('active')) toggleChat(); // Open window
+
+                // Switch conversation to sender
+                if (senderId) {
+                    startConversation(senderId, sender);
+                }
+
+                removeToast(toast);
+                markAsRead([msgId]);
+            };
+        }
+
+        function removeToast(toast) {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }
+    });
+    const userSearchInput = document.getElementById('userSearchInput');
+
+userSearchInput.addEventListener('input', function () {
+    const searchText = this.value.toLowerCase();
+    filterUserList(searchText);
+});
+
+function filterUserList(searchText) {
+    userList.innerHTML = '';
+
+    const filteredUsers = usersData.filter(user =>
+        user.username.toLowerCase().includes(searchText) ||
+        (user.role && user.role.toLowerCase().includes(searchText)) ||
+        (user.company && user.company.toLowerCase().includes(searchText))
+    );
+
+    if (filteredUsers.length === 0) {
+        userList.innerHTML =
+            `<div style="padding:10px; text-align:center; color:var(--text-secondary);">
+                No matching users
+            </div>`;
+        return;
+    }
+
+    filteredUsers.forEach(user => {
+        const item = document.createElement('div');
+        item.className = 'user-item';
+        item.innerHTML = `
+            <div class="user-item-name">${user.username}</div>
+            <div class="user-item-role">${user.role} (${user.company || 'N/A'})</div>
+        `;
+        item.onclick = () => selectUser(user.id, user.username);
+        userList.appendChild(item);
+    });
+}
+userSelectionOverlay.classList.add('active');
+if (usersData.length === 0) fetchUsers();
+
+setTimeout(() => {
+    userSearchInput.focus();
+}, 200);
+
+</script>
