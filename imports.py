@@ -44,4 +44,5 @@ from blueprints.update_interview_status import inteview_bp
 from blueprints.oncourses import oncourses_bp
 from apscheduler.schedulers.background import BackgroundScheduler
 from blueprints.agniveer_asst import agniveer_bp
+from blueprints.chat import chat_bp
 

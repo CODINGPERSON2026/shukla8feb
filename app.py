@@ -31,6 +31,7 @@ app.register_blueprint(inteview_bp)
 app.register_blueprint(add_user_bp)
 app.register_blueprint(oncourses_bp)
 app.register_blueprint(agniveer_bp)
+app.register_blueprint(chat_bp)
 
 
 @app.route("/admin_login", methods=["POST",'GET'])
@@ -4888,197 +4889,12 @@ def mark_interview_done():
 
 
 
-# ==================== CHATBOT API ROUTES ====================
 
 
 
 
-
-
-
-
-
-@app.route('/api/users', methods=['GET'])
-def get_users():
-    """Get all users except the current user for chat selection"""
-    user = require_login()
-    if not user:
-        return jsonify({'error': 'Authentication required'}), 401
-    
-    current_user_id = user['user_id']
-    
-    conn = get_db_connection()
-    if conn is None:
-        return jsonify({'error': 'Database connection failed'}), 500
-    
-    cursor = conn.cursor(dictionary=True)
-    try:
-        cursor.execute("""
-            SELECT id, username, role, company 
-            FROM users 
-            WHERE id != %s
-            ORDER BY username
-        """, (current_user_id,))
-        users = cursor.fetchall()
-        return jsonify(users), 200
-    except Exception as e:
-        print(f"Error fetching users: {e}")
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-
-@app.route('/api/messages/send', methods=['POST'])
-def send_message():
-    """Send a message to another user"""
-    user = require_login()
-    if not user:
-        return jsonify({'error': 'Authentication required'}), 401
-    
-    sender_id = user['user_id']
-    data = request.get_json()
-    receiver_id = data.get('receiver_id')
-    message = data.get('message')
-    
-    if not receiver_id or not message:
-        return jsonify({'error': 'Missing receiver_id or message'}), 400
-    
-    conn = get_db_connection()
-    if conn is None:
-        return jsonify({'error': 'Database connection failed'}), 500
-    
-    cursor = conn.cursor()
-    try:
-        cursor.execute("""
-            INSERT INTO messages (sender_id, receiver_id, message, is_read, created_at)
-            VALUES (%s, %s, %s, 0, NOW())
-        """, (sender_id, receiver_id, message))
-        conn.commit()
-        return jsonify({'success': True}), 200
-    except Exception as e:
-        conn.rollback()
-        print(f"Error sending message: {e}")
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-
-@app.route('/api/messages/history', methods=['GET'])
-def get_message_history():
-    """Get chat history between current user and another user"""
-    user = require_login()
-    if not user:
-        return jsonify({'error': 'Authentication required'}), 401
-    
-    current_user_id = user['user_id']
-    other_user_id = request.args.get('other_user_id')
-    
-    if not other_user_id:
-        return jsonify({'error': 'Missing other_user_id'}), 400
-    
-    conn = get_db_connection()
-    if conn is None:
-        return jsonify({'error': 'Database connection failed'}), 500
-    
-    cursor = conn.cursor(dictionary=True)
-    try:
-        cursor.execute("""
-            SELECT id, sender_id, receiver_id, message, is_read, created_at
-            FROM messages
-            WHERE (sender_id = %s AND receiver_id = %s)
-               OR (sender_id = %s AND receiver_id = %s)
-            ORDER BY created_at ASC
-        """, (current_user_id, other_user_id, other_user_id, current_user_id))
-        messages = cursor.fetchall()
-        
-        # Mark messages from other user as read
-        cursor.execute("""
-            UPDATE messages 
-            SET is_read = 1 
-            WHERE sender_id = %s AND receiver_id = %s AND is_read = 0
-        """, (other_user_id, current_user_id))
-        conn.commit()
-        
-        return jsonify(messages), 200
-    except Exception as e:
-        print(f"Error fetching message history: {e}")
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-
-@app.route('/api/messages/unread', methods=['GET'])
-def get_unread_messages():
-    """Get all unread messages for the current user"""
-    user = require_login()
-    if not user:
-        return jsonify({'error': 'Authentication required'}), 401
-    
-    current_user_id = user['user_id']
-    
-    conn = get_db_connection()
-    if conn is None:
-        return jsonify({'error': 'Database connection failed'}), 500
-    
-    cursor = conn.cursor(dictionary=True)
-    try:
-        cursor.execute("""
-            SELECT m.id, m.sender_id, m.receiver_id, m.message, m.created_at,
-                   u.username as sender_name
-            FROM messages m
-            JOIN users u ON m.sender_id = u.id
-            WHERE m.receiver_id = %s AND m.is_read = 0
-            ORDER BY m.created_at ASC
-        """, (current_user_id,))
-        messages = cursor.fetchall()
-        return jsonify(messages), 200
-    except Exception as e:
-        print(f"Error fetching unread messages: {e}")
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
-
-
-@app.route('/api/messages/mark_read', methods=['POST'])
-def mark_messages_read():
-    """Mark specific messages as read"""
-    user = require_login()
-    if not user:
-        return jsonify({'error': 'Authentication required'}), 401
-    
-    data = request.get_json()
-    message_ids = data.get('message_ids', [])
-    
-    if not message_ids:
-        return jsonify({'success': True}), 200
-    
-    conn = get_db_connection()
-    if conn is None:
-        return jsonify({'error': 'Database connection failed'}), 500
-    
-    cursor = conn.cursor()
-    try:
-        placeholders = ','.join(['%s'] * len(message_ids))
-        cursor.execute(f"""
-            UPDATE messages 
-            SET is_read = 1 
-            WHERE id IN ({placeholders})
-        """, message_ids)
-        conn.commit()
-        return jsonify({'success': True}), 200
-    except Exception as e:
-        conn.rollback()
-        print(f"Error marking messages as read: {e}")
-        return jsonify({'error': str(e)}), 500
-    finally:
-        cursor.close()
-        conn.close()
 
 
 
 if __name__ == '__main__':
-    app.run(host= '192.168.16.138',port=4000,debug=True)
+    app.run(port=4000,debug=True)

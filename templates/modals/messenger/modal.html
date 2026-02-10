@@ -1,0 +1,332 @@
+<style>
+/* Modal & Layout */
+.messaging-modal {
+  height: 85vh;
+}
+
+.messaging-container {
+  display: flex;
+  height: 100%;
+}
+
+/* LEFT PANEL */
+.contacts-sidebar {
+  width: 30%;
+  border-right: 1px solid #e0e0e0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fa;
+}
+
+.contact-search {
+  margin-bottom: 10px;
+}
+
+.contacts-list {
+  overflow-y: auto;
+  flex-grow: 1;
+}
+
+/* Contact item styling */
+.contact-item {
+  color: #212529 !important;
+  padding: 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  margin-bottom: 6px;
+  transition: all 0.2s ease;
+  background: white !important;
+  border: 1px solid #dee2e6;
+  font-weight: 500;
+  min-height: 45px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.contact-item:hover {
+  background: #e3f2fd !important;
+  border-color: #90caf9;
+  transform: translateX(2px);
+}
+
+/* Active contact (currently chatting with) */
+.contact-item.active {
+  background: #2196f3 !important;
+  color: white !important;
+  border-color: #2196f3 !important;
+}
+
+.contact-item.active .contact-name {
+  color: white !important;
+}
+
+/* Highlight contacts with unread messages */
+.contact-item.has-unread {
+  background: #fff3e0 !important;
+  border-color: #ff9800;
+  font-weight: 600;
+}
+
+.contact-item.has-unread:hover {
+  background: #ffe0b2 !important;
+}
+
+/* Active contact with unread (blue wins over orange) */
+.contact-item.active.has-unread {
+  background: #2196f3 !important;
+  border-color: #2196f3 !important;
+}
+
+/* Contact avatar */
+.contact-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+/* Contact name */
+.contact-name {
+  flex-grow: 1;
+}
+
+/* Unread badge on each contact */
+.contact-unread-badge {
+  background: #ff5722;
+  color: white;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+  margin-left: auto;
+}
+
+/* Active contact's unread badge */
+.contact-item.active .contact-unread-badge {
+  background: white;
+  color: #2196f3;
+}
+
+/* RIGHT PANEL */
+.conversation-panel {
+  width: 70%;
+  padding: 15px;
+  position: relative;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Conversation header with avatar */
+.conversation-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 15px;
+}
+
+.conversation-avatar {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+/* Placeholder */
+.conversation-placeholder {
+  text-align: center;
+  color: #9e9e9e;
+  margin-top: 40%;
+  font-size: 1.1rem;
+}
+
+/* Chat messages container */
+.chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-grow: 1;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+/* Message wrapper (contains avatar + bubble) */
+.message-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.message-wrapper.sent-wrapper {
+  justify-content: flex-end;
+}
+
+.message-wrapper.received-wrapper {
+  justify-content: flex-start;
+}
+
+/* Message avatar (for received messages) */
+.message-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+/* Individual messages */
+.message {
+  padding: 8px 12px;
+  border-radius: 15px;
+  max-width: 70%;
+  word-wrap: break-word;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Message text */
+.message-text {
+  display: block;
+  word-wrap: break-word;
+}
+
+/* Message info (timestamp + status) */
+.message-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  margin-top: 2px;
+}
+
+/* Timestamp */
+.message-time {
+  opacity: 0.7;
+}
+
+/* Status indicators */
+.message-status {
+  font-size: 0.8rem;
+}
+
+.message-status.sent-status {
+  color: #999;
+}
+
+.message-status.read {
+  color: #4CAF50;
+}
+
+/* Sent messages (current user) */
+.message.sent {
+  background-color: #007bff;
+  color: white;
+  border-bottom-right-radius: 0;
+}
+
+.message.sent .message-info {
+  justify-content: flex-end;
+}
+
+/* Received messages (other user) */
+.message.received {
+  background-color: #f1f0f0;
+  color: black;
+  border-bottom-left-radius: 0;
+}
+
+.message.received .message-info {
+  justify-content: flex-start;
+  color: #666;
+}
+
+/* Input box */
+.chat-input-wrapper {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chat-input-wrapper input {
+  flex-grow: 1;
+}
+
+/* Main messenger badge (on icon) */
+.sidebar-messenger {
+  position: relative;
+  cursor: pointer;
+}
+
+#unreadBadge {
+  font-size: 0.7rem;
+  padding: 0.25em 0.5em;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+</style>
+
+<div class="modal fade" id="messagingModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content messaging-modal">
+
+      <!-- Header -->
+      <div class="modal-header">
+        <h5 class="modal-title">💬 15CESR Messenger</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body p-0">
+        <div class="messaging-container">
+
+          <!-- LEFT: Contacts List -->
+          <div class="contacts-sidebar">
+            <input
+              type="text"
+              class="form-control contact-search"
+              placeholder="Search contacts..."
+              id="contactSearch"
+            />
+            <div class="contacts-list" id="contactsList">
+              <!-- contacts will load here -->
+            </div>
+          </div>
+
+          <!-- RIGHT: Conversation Window -->
+          <div class="conversation-panel">
+            <div class="conversation-placeholder">
+              👈 Select a contact to start messaging
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
